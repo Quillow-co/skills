@@ -1,6 +1,5 @@
-# Generated bundles and copied license files
+# Generated bundles and dependency license notices
 skills/*/scripts/
-skills/*/LICENSE
 skills/*/THIRD_PARTY_NOTICES
 package-lock.json
 

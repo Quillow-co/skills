@@ -57,10 +57,6 @@ for (const name of [...packages].sort()) {
 }
 
 await emit(`${output}/THIRD_PARTY_NOTICES`, notices)
-await emit(
-  `${output}/LICENSE`,
-  await readFile(path.join(root, 'LICENSE'), 'utf8')
-)
 
 console.log(
   check
