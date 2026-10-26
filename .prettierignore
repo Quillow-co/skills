@@ -1,0 +1,8 @@
+# Generated bundles and copied license files
+skills/*/scripts/
+skills/*/LICENSE
+skills/*/THIRD_PARTY_NOTICES
+package-lock.json
+
+# Local editor settings
+.idea/

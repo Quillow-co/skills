@@ -1,0 +1,107 @@
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: #192b28;
+  background: #f3f6f3;
+  color-scheme: light;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 0;
+}
+.calculator {
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: clamp(16px, 5vw, 32px);
+}
+.eyebrow {
+  margin: 0 0 8px;
+  color: #41604f;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(1.25rem, 5vw, 1.8rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.intro,
+.hint {
+  color: #4d6057;
+  line-height: 1.5;
+}
+.intro {
+  margin: 10px 0 20px;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 14px;
+}
+label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+input,
+select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid #72877b;
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #34634d;
+  outline-offset: 3px;
+}
+input[aria-invalid='true'] {
+  border-color: #a62626;
+}
+.hint {
+  font-size: 0.75rem;
+  margin: 8px 0 0;
+}
+.error {
+  color: #a62626;
+  font-size: 0.875rem;
+  margin: 8px 0;
+}
+.error:empty {
+  display: none;
+}
+.result {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #193e30;
+  color: #fff;
+  display: grid;
+  gap: 6px;
+}
+.result span {
+  font-size: 0.875rem;
+}
+output {
+  font-size: clamp(1.5rem, 7vw, 2.25rem);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}

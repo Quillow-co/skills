@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "name": "Consultation calculator",
+  "entrypoint": "index.html"
+}

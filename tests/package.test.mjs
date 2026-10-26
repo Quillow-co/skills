@@ -1,0 +1,145 @@
+import assert from 'node:assert/strict'
+import { execFile } from 'node:child_process'
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import test from 'node:test'
+import { promisify } from 'node:util'
+
+import { validateArchive } from '../src/archive-contract.mjs'
+import { packageDirectory } from '../src/package-core.mjs'
+
+const run = promisify(execFile)
+const skill = new URL('../skills/quillow-custom-block/', import.meta.url)
+
+async function workspace(t) {
+  const root = await mkdtemp(path.join(tmpdir(), 'quillow-skills-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+
+  await cp(new URL('templates/starter/', skill), path.join(root, 'block'), {
+    recursive: true,
+  })
+
+  return root
+}
+
+test('package starter, preserve root layout, and refuse overwrite', async (t) => {
+  const root = await workspace(t)
+  const output = path.join(root, 'widget.zip')
+  const result = await packageDirectory(path.join(root, 'block'), output)
+
+  assert.equal(result.entries, 4)
+  assert.deepEqual(
+    (await validateArchive(await readFile(output))).files.sort(),
+    ['app.mjs', 'index.html', 'style.css']
+  )
+  const original = await readFile(output)
+
+  await assert.rejects(
+    packageDirectory(path.join(root, 'block'), output),
+    /EEXIST/
+  )
+  assert.deepEqual(await readFile(output), original)
+})
+
+test('skip .DS_Store at every depth without deleting or counting it', async (t) => {
+  const root = await workspace(t)
+  const block = path.join(root, 'block')
+  const nested = path.join(block, 'assets', 'images')
+  const output = path.join(root, 'widget.zip')
+
+  await mkdir(nested, { recursive: true })
+
+  const metadata = [block, path.join(block, 'assets'), nested].map(
+    (directory) => path.join(directory, '.DS_Store')
+  )
+
+  for (const filename of metadata) {
+    await writeFile(filename, 'Finder metadata')
+  }
+
+  // Four starter files + two directories + 94 assets = exactly 100 entries.
+  for (let i = 0; i < 94; i++) {
+    await writeFile(path.join(nested, `asset${i}.js`), 'export default 1')
+  }
+
+  await packageDirectory(block, output)
+
+  const result = await validateArchive(await readFile(output))
+
+  assert.equal(result.entries, 98)
+  assert.equal(
+    result.files.some((name) => name.includes('.DS_Store')),
+    false
+  )
+
+  for (const filename of metadata) {
+    assert.equal(await readFile(filename, 'utf8'), 'Finder metadata')
+  }
+})
+
+test('reject self-inclusion, hidden files, and symlinks', async (t) => {
+  const root = await workspace(t)
+  const block = path.join(root, 'block')
+  const output = path.join(root, 'widget.zip')
+  await assert.rejects(
+    packageDirectory(block, path.join(block, 'widget.zip')),
+    /outside/
+  )
+  await writeFile(path.join(block, '.hidden.js'), 'junk')
+  await assert.rejects(packageDirectory(block, output), /invalid package path/)
+
+  await rm(path.join(block, '.hidden.js'))
+  await symlink(path.join(block, 'app.mjs'), path.join(block, 'link.js'))
+  await assert.rejects(packageDirectory(block, output), /regular files/)
+  await assert.rejects(readFile(output), /ENOENT/)
+})
+
+test('invalid manifest does not create an output', async (t) => {
+  const root = await workspace(t)
+  await writeFile(path.join(root, 'block', 'manifest.json'), '{}')
+  await assert.rejects(
+    packageDirectory(path.join(root, 'block'), path.join(root, 'widget.zip')),
+    /manifest/
+  )
+  await assert.rejects(readFile(path.join(root, 'widget.zip')), /ENOENT/)
+})
+
+test('installed standalone bundles run without node_modules and handle CLI errors', async (t) => {
+  const root = await workspace(t)
+  const installed = path.join(root, 'installed skill')
+
+  await cp(skill, installed, { recursive: true })
+
+  const pack = path.join(installed, 'scripts', 'package.mjs')
+  const validate = path.join(installed, 'scripts', 'validate.mjs')
+
+  const result = await run(
+    process.execPath,
+    [pack, './block', './output.zip'],
+    { cwd: root }
+  )
+  assert.match(result.stdout, /Created and validated/)
+  assert.match(
+    (await run(process.execPath, [validate, './output.zip'], { cwd: root }))
+      .stdout,
+    /Valid package/
+  )
+  await assert.rejects(
+    run(process.execPath, [validate], { cwd: root }),
+    (error) => error.code === 1 && /Usage/.test(error.stderr)
+  )
+  await writeFile(path.join(root, 'bad.zip'), 'bad')
+  await assert.rejects(
+    run(process.execPath, [validate, './bad.zip'], { cwd: root }),
+    (error) => error.code === 1 && /Validation failed/.test(error.stderr)
+  )
+})

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/prettierrc",
+  "arrowParens": "always",
+  "bracketSameLine": false,
+  "bracketSpacing": true,
+  "endOfLine": "lf",
+  "htmlWhitespaceSensitivity": "css",
+  "jsxSingleQuote": false,
+  "printWidth": 80,
+  "proseWrap": "preserve",
+  "quoteProps": "as-needed",
+  "semi": false,
+  "singleAttributePerLine": true,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "useTabs": false,
+  "vueIndentScriptAndStyle": false,
+  "plugins": ["@ianvs/prettier-plugin-sort-imports"],
+  "importOrder": [
+    "<THIRD_PARTY_MODULES>",
+    "<BUILTIN_MODULES>",
+    "",
+    "^\\./",
+    "",
+    "^\\.\\./",
+    ""
+  ],
+  "importOrderCaseSensitive": false,
+  "overrides": [
+    {
+      "files": "*.jsonc",
+      "options": {
+        "trailingComma": "none"
+      }
+    }
+  ]
+}
