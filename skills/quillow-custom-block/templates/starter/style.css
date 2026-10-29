@@ -123,6 +123,10 @@ button[aria-pressed='true'] {
 }
 
 @media (max-width: 220px) and (max-height: 220px) {
+  .block-copy p {
+    display: none;
+  }
+
   .block-action {
     display: grid;
   }
