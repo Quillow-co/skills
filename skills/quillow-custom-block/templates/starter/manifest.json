@@ -1,5 +1,5 @@
 {
   "schemaVersion": 1,
-  "name": "Consultation calculator",
+  "name": "Custom block starter",
   "entrypoint": "index.html"
 }

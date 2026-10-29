@@ -45,8 +45,8 @@ persistent storage, or Quillow data access. See the skill's
 From this repository (or adjust paths for the installed skill):
 
 ```sh
-node skills/quillow-custom-block/scripts/package.mjs skills/quillow-custom-block/templates/starter ./calculator.zip
-node skills/quillow-custom-block/scripts/validate.mjs ./calculator.zip
+node skills/quillow-custom-block/scripts/package.mjs skills/quillow-custom-block/templates/starter ./custom-block-starter.zip
+node skills/quillow-custom-block/scripts/validate.mjs ./custom-block-starter.zip
 ```
 
 Package only a clean directory of widget files. The output must be outside it and
