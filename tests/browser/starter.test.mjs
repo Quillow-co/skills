@@ -4,7 +4,13 @@ import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import test from 'node:test'
 
-test('starter works in the host sandbox/CSP at small and wide sizes', async (t) => {
+const viewports = [
+  { name: 'small', width: 156, height: 156, introVisible: false },
+  { name: 'medium', width: 336, height: 156, introVisible: true },
+  { name: 'large', width: 336, height: 336, introVisible: true },
+]
+
+test('starter works in the host sandbox/CSP at every Quillow size', async (t) => {
   const files = new Map()
   const types = {
     'index.html': 'text/html',
@@ -30,7 +36,7 @@ test('starter works in the host sandbox/CSP at small and wide sizes', async (t) 
     if (request.url === '/') {
       response.writeHead(200, { 'Content-Type': 'text/html' })
       response.end(
-        `<iframe title="Widget" sandbox="allow-scripts" referrerpolicy="no-referrer" src="${origin}/package/index.html" style="border:0;width:280px;height:280px"></iframe>`
+        `<iframe title="Widget" sandbox="allow-scripts" referrerpolicy="no-referrer" src="${origin}/package/index.html" style="border:0;width:156px;height:156px"></iframe>`
       )
 
       return
@@ -90,54 +96,78 @@ test('starter works in the host sandbox/CSP at small and wide sizes', async (t) 
   await page.goto(origin)
 
   const frame = page.frameLocator('iframe')
-  await frame.locator('#sessions[aria-invalid="false"]').waitFor()
-  assert.equal(await frame.locator('#total').textContent(), '$120.00')
+  const action = frame.locator('#action')
 
-  await frame.locator('#duration').selectOption('90')
-  await frame.locator('#sessions').fill('3')
-  assert.equal(await frame.locator('#total').textContent(), '$540.00')
+  await action.waitFor()
+  assert.equal(await action.getAttribute('aria-pressed'), 'false')
+  await action.click()
+  assert.equal(await action.getAttribute('aria-pressed'), 'true')
+  assert.equal(await action.textContent(), 'Action complete')
+  await action.focus()
+  await page.keyboard.press('Enter')
+  assert.equal(await action.getAttribute('aria-pressed'), 'false')
+  await action.click()
 
-  for (const value of ['', '0', '1.5', '101']) {
-    await frame.locator('#sessions').fill(value)
+  for (const viewport of viewports) {
+    await page.locator('iframe').evaluate((element, size) => {
+      element.style.width = `${size.width}px`
+      element.style.height = `${size.height}px`
+    }, viewport)
+
     assert.equal(
-      await frame.locator('#sessions').getAttribute('aria-invalid'),
-      'true'
-    )
-    assert.equal(await frame.locator('#total').textContent(), '—')
-  }
-  await frame.locator('#sessions').fill('2')
-  assert.equal(await frame.locator('#total').textContent(), '$360.00')
-
-  await frame.locator('#duration').focus()
-  await page.keyboard.press('Tab')
-  assert.equal(
-    await frame
-      .locator('#sessions')
-      .evaluate((element) => element === document.activeElement),
-    true
-  )
-  for (const [width, height] of [
-    [280, 280],
-    [640, 360],
-  ]) {
-    await page.locator('iframe').evaluate(
-      (element, size) => {
-        element.style.width = `${size[0]}px`
-        element.style.height = `${size[1]}px`
-      },
-      [width, height]
+      await frame.locator('.block-intro').isVisible(),
+      viewport.introVisible,
+      `${viewport.name} intro visibility`
     )
     assert.equal(
-      await frame
-        .locator('body')
-        .evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-      true
+      await frame.locator('body').evaluate(() => {
+        return (
+          document.documentElement.scrollWidth <= innerWidth &&
+          document.documentElement.scrollHeight <= innerHeight
+        )
+      }),
+      true,
+      `${viewport.name} document overflow`
     )
     assert.equal(
-      await frame
-        .locator('input')
-        .evaluate((element) => getComputedStyle(element).minHeight),
-      '44px'
+      await frame.locator('body').evaluate(() => {
+        return [...document.querySelectorAll('h1, h2, p, button')]
+          .filter((element) => {
+            const style = getComputedStyle(element)
+            return style.display !== 'none' && style.visibility !== 'hidden'
+          })
+          .every((element) => {
+            const rect = element.getBoundingClientRect()
+            return (
+              rect.left >= 0 &&
+              rect.top >= 0 &&
+              rect.right <= innerWidth &&
+              rect.bottom <= innerHeight
+            )
+          })
+      }),
+      true,
+      `${viewport.name} visible content bounds`
+    )
+    assert.equal(
+      await action.evaluate((element) => {
+        const rect = element.getBoundingClientRect()
+        return rect.width >= 40 && rect.height >= 40
+      }),
+      true,
+      `${viewport.name} action target`
+    )
+    assert.equal(
+      await frame.locator('body').evaluate(() => {
+        return [...document.querySelectorAll('h1, h2, p, button')]
+          .filter((element) => getComputedStyle(element).display !== 'none')
+          .every(
+            (element) =>
+              Number.parseFloat(getComputedStyle(element).fontSize) >= 12
+          )
+      }),
+      true,
+      `${viewport.name} text size`
     )
   }
 

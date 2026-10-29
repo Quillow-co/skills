@@ -28,10 +28,15 @@ local JSON: `connect-src 'none'` blocks them. Use a JS module instead.
 
 ## Layout
 
-The block fills its assigned grid cell, not the browser's page. Use responsive
-widths, `box-sizing: border-box`, `min-width: 0`, and deliberate overflow handling.
-Support narrow cells without horizontal clipping. Allow vertical scrolling when
-content needs more height; do not assume the parent will resize.
+The block fills its assigned grid cell, not the browser's page. One package must
+support all three fixed CSS-pixel viewports: small at 156 × 156, medium at
+336 × 156, and large at 336 × 336. Medium and large have the same width, so use
+height or aspect ratio as well as width when changing composition.
+
+Use responsive widths, `box-sizing: border-box`, `min-width: 0`, and deliberate
+overflow handling. Prefer intentional single-screen compositions for small and
+medium; do not assume the parent will resize. Read
+[the design guide](design-guide.md) for content-priority and review requirements.
 
 Use labels, visible focus indicators, semantic controls, sufficient contrast,
 and readable result/error states. Respect reduced motion if adding animation.
@@ -74,6 +79,7 @@ Serve correct MIME types and `Access-Control-Allow-Origin: *` for module/font
 requests from the sandbox's opaque origin. Include `X-Content-Type-Options:
 nosniff` and `Referrer-Policy: no-referrer`.
 
-Exercise the main interaction, invalid/empty values, keyboard focus, and multiple
-cell sizes (for example 280×280 and 640×360). Check console errors, missing assets,
-and CSP violations. A plain unsandboxed page does not reproduce this runtime.
+Exercise the main interaction, invalid/empty values, keyboard focus, and exactly
+156 × 156, 336 × 156, and 336 × 336. Check console errors, missing assets, CSP
+violations, clipping, accidental scrolling, and undersized controls. A plain
+unsandboxed page does not reproduce this runtime.
