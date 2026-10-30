@@ -2,7 +2,7 @@
 
 ## Viewports and host chrome
 
-One upload must work at all three fixed CSS-pixel viewports:
+One upload must work at all three baseline CSS-pixel viewports:
 
 | Size   | Grid footprint | Viewport  | Shape  |
 | ------ | -------------- | --------- | ------ |
@@ -33,8 +33,12 @@ body {
 }
 ```
 
-Medium and large are both 336 px wide, so do not infer the composition from width
-alone. Use height, aspect ratio, or tolerant viewport media queries:
+Use `html[data-quillow-size='1:1']`, `2:1`, and `2:2` for the three
+compositions when SDK context is available. Fit content to actual dimensions.
+`data-quillow-viewport` is the page's mobile/desktop mode, not block size.
+Medium and large are both 336 px wide, so do not infer composition from width
+alone. Retain these fallback queries, scoped to `:root:not([data-quillow-size])`
+so they cannot override the host composition:
 
 ```css
 @media (max-width: 220px) and (max-height: 220px) {
@@ -96,9 +100,10 @@ Use a 4 px base spacing rhythm. Good starting points are:
 - Section gaps: 12–16 px.
 - Floating-control edge clearance: at least 12 px.
 
-Use a system font stack unless the visual identity requires a packaged `.woff` or
-`.woff2` font. CSS inheritance does not cross an iframe. Until Quillow documents a
-theme bridge, do not claim that a block inherits the profile's selected font.
+Use `--quillow-typography` with a system font fallback by default. The SDK loads
+the host-selected font; CSS inheritance itself does not cross an iframe. A custom
+visual identity may instead use a packaged `.woff` or `.woff2` font. Recheck
+layout after font loading and live font changes.
 
 Useful type targets:
 

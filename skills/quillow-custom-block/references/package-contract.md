@@ -10,11 +10,15 @@ block.zip
 ├── index.html
 ├── style.css
 ├── app.mjs
+├── runtime.js
 └── assets/
     └── photo.webp
 ```
 
 No outer project directory. Only the manifest and HTML entrypoint are required.
+The starter also includes the pinned SDK's standalone `runtime.js`; keep it in
+the ZIP and load it before author scripts. Do not include SDK source maps or npm
+package metadata. Runtime injection by the upload pipeline is not assumed.
 
 ```json
 {

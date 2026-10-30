@@ -1,6 +1,7 @@
 # Generated bundles and dependency license notices
 skills/*/scripts/
 skills/*/THIRD_PARTY_NOTICES
+skills/*/templates/starter/runtime.js
 package-lock.json
 
 # Local editor settings
