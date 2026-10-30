@@ -1,4 +1,4 @@
-import { chromium } from '@playwright/test'
+import { chromium, expect } from '@playwright/test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
@@ -15,6 +15,7 @@ test('starter works in the host sandbox/CSP at every Quillow size', async (t) =>
   const types = {
     'index.html': 'text/html',
     'app.mjs': 'text/javascript',
+    'runtime.js': 'text/javascript',
     'style.css': 'text/css',
   }
 
@@ -60,9 +61,9 @@ test('starter works in the host sandbox/CSP at every Quillow size', async (t) =>
         'sandbox allow-scripts',
         "default-src 'none'",
         `script-src 'unsafe-inline' ${prefix}`,
-        `style-src 'unsafe-inline' ${prefix}`,
+        `style-src 'unsafe-inline' ${prefix} https://fonts.googleapis.com`,
         `img-src data: ${prefix}`,
-        `font-src ${prefix}`,
+        `font-src ${prefix} https://fonts.gstatic.com`,
         "connect-src 'none'",
         "worker-src 'none'",
         "frame-src 'none'",
@@ -170,6 +171,154 @@ test('starter works in the host sandbox/CSP at every Quillow size', async (t) =>
       `${viewport.name} text size`
     )
   }
+
+  // Emulate the deployed parent bridge after exercising the no-context fallback.
+  await page.evaluate(() => {
+    window.sdkReady = false
+    window.addEventListener('message', (event) => {
+      if (
+        event.source === document.querySelector('iframe').contentWindow &&
+        event.data?.protocol === 'quillow:custom-block' &&
+        event.data?.type === 'ready'
+      )
+        window.sdkReady = true
+    })
+    document.querySelector('iframe').contentWindow.postMessage(
+      {
+        protocol: 'quillow:custom-block',
+        version: 1,
+        type: 'hello',
+      },
+      '*'
+    )
+  })
+  await page.waitForFunction(() => window.sdkReady)
+
+  const context = {
+    theme: {
+      mode: 'dark',
+      cornerStyle: 'Sharp',
+      fontStylesheet: null,
+      variables: {
+        '--quillow-text-color': '#eeeeee',
+        '--quillow-surface-color': '#111111',
+        '--quillow-accent-color': '#ffff00',
+        '--quillow-accent-text-color': '#111111',
+        '--quillow-radius': '0px',
+        '--quillow-typography': 'Arial, sans-serif',
+      },
+    },
+    layout: { size: '1:1', width: 336, height: 336, viewport: 'desktop' },
+    environment: 'editor',
+  }
+  const sendContext = async () => {
+    await page.evaluate((context) => {
+      document.querySelector('iframe').contentWindow.postMessage(
+        {
+          protocol: 'quillow:custom-block',
+          version: 1,
+          type: 'context',
+          context,
+        },
+        '*'
+      )
+    }, context)
+    await expect(frame.locator('html')).toHaveAttribute(
+      'data-quillow-size',
+      context.layout.size
+    )
+    await expect(frame.locator('html')).toHaveAttribute(
+      'data-quillow-theme',
+      context.theme.mode
+    )
+  }
+  await sendContext()
+  // Host composition wins even when the fallback media query would choose large.
+  await expect(frame.locator('.block-intro')).toBeHidden()
+  await expect(frame.locator('.block-description')).toBeHidden()
+  await expect(frame.locator('html')).toHaveCSS(
+    'background-color',
+    'rgb(17, 17, 17)'
+  )
+  await expect(action).toHaveCSS('background-color', 'rgb(255, 255, 0)')
+  await expect(action).toHaveCSS('color', 'rgb(17, 17, 17)')
+  await expect(action).toHaveCSS('border-radius', '0px')
+  await expect(frame.locator('html')).toHaveCSS(
+    'font-family',
+    'Arial, sans-serif'
+  )
+
+  for (const [index, viewport] of viewports.entries()) {
+    await page.locator('iframe').evaluate((element, size) => {
+      element.style.width = `${size.width}px`
+      element.style.height = `${size.height}px`
+    }, viewport)
+    context.layout = {
+      size: ['1:1', '2:1', '2:2'][index],
+      width: viewport.width,
+      height: viewport.height,
+      viewport: 'mobile',
+    }
+    context.theme.mode = 'light'
+    context.theme.variables['--quillow-text-color'] = '#111111'
+    context.theme.variables['--quillow-surface-color'] = '#ffffff'
+    await sendContext()
+    await expect(frame.locator('.block-intro')).toBeVisible({
+      visible: viewport.introVisible,
+    })
+    await expect(action).toHaveAttribute('aria-pressed', 'true')
+    assert.equal(
+      await frame.locator('body').evaluate(() =>
+        [...document.querySelectorAll('h1, h2, p, button')]
+          .filter((element) => element.checkVisibility())
+          .every((element) => {
+            const rect = element.getBoundingClientRect()
+            return (
+              rect.left >= 0 &&
+              rect.top >= 0 &&
+              rect.right <= innerWidth &&
+              rect.bottom <= innerHeight
+            )
+          })
+      ),
+      true,
+      `${viewport.name} host composition bounds`
+    )
+    await expect(frame.locator('html')).toHaveAttribute(
+      'data-quillow-viewport',
+      'mobile'
+    )
+  }
+
+  // Deterministic font stylesheet delivery, without an external network dependency.
+  await page.route('https://fonts.googleapis.com/**', (route) =>
+    route.fulfill({
+      contentType: 'text/css',
+      body: '/* Host font stylesheet fixture */',
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    })
+  )
+  context.theme.fontStylesheet =
+    'https://fonts.googleapis.com/css2?family=Roboto'
+  await sendContext()
+  await expect(frame.locator('link[href*="fonts.googleapis.com"]')).toHaveCount(
+    1
+  )
+  context.theme.fontStylesheet =
+    'https://fonts.googleapis.com/css2?family=Inter'
+  context.theme.variables['--quillow-typography'] = 'Georgia, serif'
+  await sendContext()
+  await expect(frame.locator('link[href*="family=Inter"]')).toHaveCount(1)
+  await expect(frame.locator('link[href*="fonts.googleapis.com"]')).toHaveCount(
+    1
+  )
+  await expect(frame.locator('html')).toHaveCSS('font-family', 'Georgia, serif')
+  context.theme.fontStylesheet = null
+  await sendContext()
+  await expect(frame.locator('link[href*="fonts.googleapis.com"]')).toHaveCount(
+    0
+  )
+  await expect(action).toHaveAttribute('aria-pressed', 'true')
 
   assert.deepEqual(errors, [])
   assert.deepEqual(failed, [])

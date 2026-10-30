@@ -36,10 +36,10 @@ test('package starter, preserve root layout, and refuse overwrite', async (t) =>
   const output = path.join(root, 'widget.zip')
   const result = await packageDirectory(path.join(root, 'block'), output)
 
-  assert.equal(result.entries, 4)
+  assert.equal(result.entries, 5)
   assert.deepEqual(
     (await validateArchive(await readFile(output))).files.sort(),
-    ['app.mjs', 'index.html', 'style.css']
+    ['app.mjs', 'index.html', 'runtime.js', 'style.css']
   )
   const original = await readFile(output)
 
@@ -66,8 +66,8 @@ test('skip .DS_Store at every depth without deleting or counting it', async (t) 
     await writeFile(filename, 'Finder metadata')
   }
 
-  // Four starter files + two directories + 94 assets = exactly 100 entries.
-  for (let i = 0; i < 94; i++) {
+  // Five starter files + two directories + 93 assets = exactly 100 entries.
+  for (let i = 0; i < 93; i++) {
     await writeFile(path.join(nested, `asset${i}.js`), 'export default 1')
   }
 

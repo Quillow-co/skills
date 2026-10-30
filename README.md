@@ -63,7 +63,10 @@ npm run check
 ```
 
 Edit `src/` and rebuild; commit the generated `skills/quillow-custom-block/scripts/`
-and `THIRD_PARTY_NOTICES` with source changes. `check:build` detects stale bundles.
+and `THIRD_PARTY_NOTICES` with source changes. The build also copies the pinned
+`@quillow/custom-block-sdk` runtime into `templates/starter/runtime.js`, embeds
+its MIT license, and removes the source map reference. Commit that generated file
+when updating the SDK dependency and lockfile. `check:build` detects stale bundles.
 Prettier formats source, documentation, and templates using `.prettierrc.json`,
 including import sorting. Generated bundles are excluded. Run `npm run format`
 before rebuilding; `npm run format:check` verifies formatting without modifying
@@ -77,7 +80,10 @@ npm run test:browser
 ```
 
 The browser test uses a local HTTP host with the sandbox/CSP/CORS contract from
-Quillow. CI runs this test along with archive tests and bundle checks.
+Quillow, plus a parent bridge fixture for live theme, font stylesheet, and layout
+updates. Font stylesheet responses are mocked for deterministic offline testing;
+this does not verify Google Fonts delivery in production. CI runs this test along
+with archive tests and bundle checks.
 
 ### Contract maintenance
 

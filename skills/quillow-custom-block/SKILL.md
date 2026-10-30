@@ -28,9 +28,10 @@ do not assume a particular editor, terminal tool, installation path, or browser 
    a screenshot or invent an art direction from the content subject. A specific
    style request or copied creative prompt overrides the default; preserve its
    concept while improving fit, accessibility, and reliability.
-4. Resolve requests for live APIs, persistent state, or Quillow data with the
-   user before coding: those capabilities are unavailable in v1. Do not invent
-   them or silently substitute fake data.
+4. The bundled SDK supplies live theme, layout, and editor/published context.
+   Resolve requests for remote APIs, persistent state, or Quillow account/page
+   data with the user before coding: those capabilities remain unavailable.
+   Do not invent them or silently substitute fake data.
 5. Find the installed directory containing this `SKILL.md`; call its absolute
    path `SKILL_DIR`. Check `node --version` (22.20+). Scripts and references are
    relative to this directory, not to the user's working directory. No package
@@ -40,6 +41,9 @@ do not assume a particular editor, terminal tool, installation path, or browser 
    template. Prefer plain HTML/CSS/JS. Keep source/build tooling outside the
    directory that will be packaged. Replace all starter content and give the
    manifest a descriptive name.
+   Keep the local `runtime.js` script before author scripts. It supplies
+   `window.Quillow` and auto-starts inside an iframe. Do not load a second
+   bundled ESM SDK instance alongside it.
 7. For an existing block, inspect the files before editing and preserve unrelated
    behavior and user content. If only a ZIP was supplied, validate it first with
    `validate.mjs`, then use an available archive tool to extract it into a fresh
@@ -47,11 +51,15 @@ do not assume a particular editor, terminal tool, installation path, or browser 
    extracted files. Do not overwrite the original ZIP. Revisions use a new output
    filename.
 8. Implement accessible controls, input validation, clear empty/error states, and
-   responsive layouts at exactly these CSS-pixel viewports:
+   responsive layouts using SDK size attributes, with these baseline test viewports:
 
    - Small: 156 × 156
    - Medium: 336 × 156
    - Large: 336 × 336
+
+   Use `data-quillow-size` for composition and actual available dimensions for
+   fitting content. Page viewport mode is distinct from block size. Keep CSS
+   fallbacks for initial rendering and previews without host context.
 
    Treat these as three intentional compositions, not one canvas scaled up or
    down. Remove low-priority framing before shrinking type, truncating essential
@@ -62,7 +70,8 @@ do not assume a particular editor, terminal tool, installation path, or browser 
 9. If browser tools are available, serve the files through local HTTP and test in
    a sandboxed iframe with the documented CSP and CORS headers. Test all three
    exact viewports, keyboard interaction, touch/pointer behavior, reduced motion,
-   and the main interaction. Plain `file://` or an unsandboxed tab is not a runtime
+   live theme/font/layout changes without losing state, and the main interaction.
+   Plain `file://` or an unsandboxed tab is not a runtime
    compatibility check. Fix clipping, overlap, accidental scrolling, tiny targets,
    and unreadable text rather than reporting them as expected limitations. If no
    browser is available, say that visual/runtime checks were not performed.
@@ -92,6 +101,8 @@ do not assume a particular editor, terminal tool, installation path, or browser 
   runnable steps instead of a fictitious download link.
 - A valid ZIP does not prove JavaScript behavior or visual quality. Report archive
   validation separately from browser checks.
-- Keep everything self-contained: no CDN scripts/fonts, analytics, remote APIs,
+- Package scripts and assets locally: no CDN scripts, analytics, remote APIs,
   secrets, server-side code, or installation steps inside the generated block.
+  Host-provided font stylesheets managed by the SDK are the supported external
+  font exception; do not add arbitrary remote fonts.
 - Do not add manifest properties for height, permissions, theme, or resizing.
